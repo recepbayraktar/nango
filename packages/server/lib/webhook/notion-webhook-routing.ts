@@ -1,24 +1,12 @@
-import { createHmac, timingSafeEqual } from 'crypto';
-
 import { NangoError } from '@nangohq/shared';
 import { Err, getLogger, Ok } from '@nangohq/utils';
+
+import { warnMissingWebhookSecret } from './missing-secret.js';
+import { validateHmacSignature } from './signature.js';
 
 import type { NotionWebhook, NotionWebhookVerification, WebhookHandler } from './types.js';
 
 const logger = getLogger('Webhook.Notion');
-
-function validate(verificationToken: string, headerSignature: string, body: string): boolean {
-    const calculatedSignature = `sha256=${createHmac('sha256', verificationToken).update(body).digest('hex')}`;
-
-    const calculatedBuffer = Buffer.from(calculatedSignature);
-    const headerBuffer = Buffer.from(headerSignature);
-
-    if (calculatedBuffer.length !== headerBuffer.length) {
-        return false;
-    }
-
-    return timingSafeEqual(calculatedBuffer, headerBuffer);
-}
 
 const route: WebhookHandler<NotionWebhook | NotionWebhookVerification> = async (nango, headers, body, rawBody) => {
     const signature = headers['x-notion-signature'];
@@ -32,10 +20,12 @@ const route: WebhookHandler<NotionWebhook | NotionWebhookVerification> = async (
             return Err(new NangoError('webhook_missing_signature'));
         }
 
-        if (!validate(verificationToken, signature, rawBody)) {
+        if (!validateHmacSignature({ secret: verificationToken, rawBody, signature, prefix: 'sha256=' })) {
             logger.error('invalid signature', { configId: nango.integration.id });
             return Err(new NangoError('webhook_invalid_signature'));
         }
+    } else {
+        warnMissingWebhookSecret(nango, { reason: 'notion_missing_verification_token', secretField: 'verification token' });
     }
 
     const response = await nango.executeScriptForWebhooks({

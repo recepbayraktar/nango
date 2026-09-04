@@ -1,6 +1,9 @@
 import { NangoError } from '@nangohq/shared';
 import { Err, Ok } from '@nangohq/utils';
 
+import { warnMissingWebhookSecret } from './missing-secret.js';
+import { safeCompare } from './signature.js';
+
 import type { WebhookHandler } from './types.js';
 
 interface MicrosoftNotification {
@@ -34,7 +37,14 @@ const route: WebhookHandler<MicrosoftNotificationPayload> = async (nango, _heade
     }
 
     const expectedClientState = nango.integration.custom?.['webhookSecret'];
-    const validNotifications = expectedClientState ? notifications.filter((n) => n.clientState === expectedClientState) : notifications;
+
+    if (!expectedClientState) {
+        warnMissingWebhookSecret(nango, { reason: 'microsoft_missing_client_state', secretField: 'clientState webhook secret' });
+    }
+
+    const validNotifications = expectedClientState
+        ? notifications.filter((n) => typeof n.clientState === 'string' && safeCompare(expectedClientState, n.clientState))
+        : notifications;
 
     if (validNotifications.length === 0) {
         return Err(new NangoError('webhook_invalid_signature'));

@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 import { formatPem, NangoError } from '@nangohq/shared';
 import { Err, getLogger, Ok, report } from '@nangohq/utils';
 
+import { warnMissingWebhookSecret } from './missing-secret.js';
+
 import type { HighLevelWebhookResponse, WebhookHandler } from './types.js';
 
 const logger = getLogger('Webhook.Highlevel');
@@ -33,7 +35,7 @@ const route: WebhookHandler<HighLevelWebhookResponse> = async (nango, headers, b
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        logger.info('no webhook secret configured, skipping signature validation', { configId: nango.integration.id });
+        warnMissingWebhookSecret(nango, { reason: 'highlevel_missing_webhook_secret', secretField: 'webhook public key' });
     }
 
     const { companyId, locationId, altId, altType, type } = body;

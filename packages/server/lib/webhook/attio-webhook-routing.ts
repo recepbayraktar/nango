@@ -1,16 +1,12 @@
-import crypto from 'node:crypto';
-
 import { NangoError } from '@nangohq/shared';
 import { Err, getLogger, Ok } from '@nangohq/utils';
+
+import { warnMissingWebhookSecret } from './missing-secret.js';
+import { validateHmacSignature } from './signature.js';
 
 import type { AttioWebhook, WebhookHandler } from './types.js';
 
 const logger = getLogger('Webhook.Attio');
-
-function validate(secret: string, headerSignature: string, rawBody: string): boolean {
-    const signature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(headerSignature));
-}
 
 const route: WebhookHandler<AttioWebhook> = async (nango, headers, body, rawBody) => {
     const signature = headers['x-attio-signature'];
@@ -22,12 +18,12 @@ const route: WebhookHandler<AttioWebhook> = async (nango, headers, body, rawBody
             return Err(new NangoError('webhook_missing_signature'));
         }
 
-        if (!validate(nango.integration.custom['webhookSecret'], signature, rawBody)) {
+        if (!validateHmacSignature({ secret: nango.integration.custom['webhookSecret'], rawBody, signature })) {
             logger.error('invalid signature', { configId: nango.integration.id });
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        logger.info('no webhook secret configured, skipping signature validation', { configId: nango.integration.id });
+        warnMissingWebhookSecret(nango, { reason: 'attio_missing_webhook_secret', secretField: 'webhook secret' });
     }
 
     const parsedBody = body;

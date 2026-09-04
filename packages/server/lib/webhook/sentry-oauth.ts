@@ -6,6 +6,7 @@ import { connectionService, getProvider, NangoError } from '@nangohq/shared';
 import { Err, getLogger, Ok } from '@nangohq/utils';
 
 import oauthController from '../controllers/oauth.controller.js';
+import { safeCompare } from './signature.js';
 
 import type { InternalNango } from './internal-nango.js';
 import type { SentryOauthWebhookResponse, WebhookHandler } from './types.js';
@@ -16,16 +17,21 @@ import type { Result } from '@nangohq/utils';
 const logger = getLogger('Webhook.SentryOauth');
 
 export function validate(request: { body: any; headers: Record<string, string> }, secret: string): boolean {
+    if (!secret) {
+        return false;
+    }
+
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(JSON.stringify(request.body), 'utf8');
     const digest = hmac.digest('hex');
-    return digest === request.headers['sentry-hook-signature'];
+
+    return safeCompare(digest, request.headers['sentry-hook-signature'] ?? '', 'hex');
 }
 
 const route: WebhookHandler = async (nango, headers, body) => {
     const signature = headers['sentry-hook-signature'];
     if (signature) {
-        const valid = validate({ body, headers }, nango.integration.oauth_client_secret!);
+        const valid = validate({ body, headers }, nango.integration.oauth_client_secret ?? '');
         if (!valid) {
             logger.error('Sentry Oauth webhook signature invalid. Exiting');
             return Err(new NangoError('webhook_invalid_signature'));

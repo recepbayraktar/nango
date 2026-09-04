@@ -3,6 +3,9 @@ import crypto from 'node:crypto';
 import { NangoError } from '@nangohq/shared';
 import { Err, Ok } from '@nangohq/utils';
 
+import { warnMissingWebhookSecret } from './missing-secret.js';
+import { safeCompare } from './signature.js';
+
 import type { WebhookHandler } from './types.js';
 
 function parseCalendlySignature(signatureHeader: string): { timestamp: string; signature: string } | null {
@@ -30,14 +33,7 @@ function validateCalendlySignature(webhookSecret: string, timestamp: string, hea
     const data = timestamp + '.' + rawBody;
     const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(data, 'utf8').digest('hex');
 
-    const expectedBuffer = Buffer.from(expectedSignature, 'hex');
-    const headerBuffer = Buffer.from(headerSignature, 'hex');
-
-    if (expectedBuffer.length !== headerBuffer.length) {
-        return false;
-    }
-
-    return crypto.timingSafeEqual(expectedBuffer, headerBuffer);
+    return safeCompare(expectedSignature, headerSignature, 'hex');
 }
 
 function validateTimestamp(timestamp: string, toleranceMs: number = 180000): boolean {
@@ -72,6 +68,8 @@ const route: WebhookHandler = async (nango, headers, body, rawBody) => {
         if (!validateCalendlySignature(webhookSecret, timestamp, signature, rawBody)) {
             return Err(new NangoError('webhook_invalid_signature'));
         }
+    } else {
+        warnMissingWebhookSecret(nango, { reason: 'calendly_missing_webhook_secret', secretField: 'webhook secret' });
     }
 
     const response = await nango.executeScriptForWebhooks({

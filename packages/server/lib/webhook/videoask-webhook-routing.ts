@@ -1,6 +1,9 @@
 import { NangoError } from '@nangohq/shared';
 import { Err, Ok } from '@nangohq/utils';
 
+import { warnMissingWebhookSecret } from './missing-secret.js';
+import { safeCompare } from './signature.js';
+
 import type { WebhookHandler } from './types.js';
 
 // https://developers.videoask.com/reference/put_forms-form-id-webhooks-tag
@@ -9,9 +12,11 @@ const route: WebhookHandler = async (nango, headers, body) => {
     const incomingSecret = headers['nango-webhook-secret'];
 
     if (webhookSecret) {
-        if (!incomingSecret || incomingSecret !== webhookSecret) {
+        if (!incomingSecret || !safeCompare(webhookSecret, incomingSecret)) {
             return Err(new NangoError('webhook_invalid_signature'));
         }
+    } else {
+        warnMissingWebhookSecret(nango, { reason: 'videoask_missing_webhook_secret', secretField: 'webhook secret' });
     }
 
     const connectionIdentifierValue = headers['nango-connection-id'];

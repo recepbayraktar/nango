@@ -1,10 +1,11 @@
 import crypto from 'node:crypto';
 
 import { environmentService, getGlobalWebhookReceiveUrl, NangoError } from '@nangohq/shared';
-import { Err, getLogger, metrics, Ok, report } from '@nangohq/utils';
+import { Err, getLogger, Ok, report } from '@nangohq/utils';
 
 import { hashEmailAddress } from '../utils/pii.js';
 import { getGoogleJWKS } from './cache.js';
+import { warnMissingWebhookSecret } from './missing-secret.js';
 
 import type { WebhookHandler } from './types.js';
 import type { IntegrationConfig } from '@nangohq/types';
@@ -92,9 +93,9 @@ const route: WebhookHandler = async (nango, headers, body) => {
     const authHeader = headers['authorization'];
 
     if (!authHeader) {
-        metrics.increment(metrics.Types.WEBHOOK_INCOMING_UNVERIFIED, 1, {
-            accountId: nango.team.id,
-            reason: 'gmail_missing_authorization'
+        warnMissingWebhookSecret(nango, {
+            reason: 'gmail_missing_authorization',
+            secretField: 'OIDC token on the Pub/Sub push subscription'
         });
     }
 
@@ -107,9 +108,13 @@ const route: WebhookHandler = async (nango, headers, body) => {
 
     let decodedBody: DecodedDataObject | null = null;
 
-    const encodedBody = typeof body.message.data === 'string' ? Buffer.from(body.message.data, 'base64').toString('utf8') : body;
+    if (typeof body?.message?.data !== 'string') {
+        logger.error('Webhook body is missing message.data', { configId: nango.integration.id });
+        return Err(new NangoError('webhook_invalid_body'));
+    }
+
     try {
-        decodedBody = JSON.parse(encodedBody);
+        decodedBody = JSON.parse(Buffer.from(body.message.data, 'base64').toString('utf8'));
     } catch (err) {
         logger.error('Failed to parse webhook body:', err);
         return Err(new NangoError('webhook_invalid_body'));
