@@ -78,7 +78,11 @@ const route: WebhookHandler<PagerDutyWebhookPayload> = async (nango, headers, bo
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'pagerduty_missing_webhook_secret', secretField: 'webhookSecret connection metadata field' });
+        warnMissingWebhookSecret(nango, {
+            reason: 'pagerduty_missing_webhook_secret',
+            secretField: 'webhookSecret connection metadata field',
+            scope: connection.connectionId
+        });
     }
 
     const response = await nango.executeScriptForWebhooks({

@@ -6,22 +6,32 @@ import type { InternalNango } from './internal-nango.js';
 const logger = getLogger('Webhook.MissingSecret');
 
 /**
- * One warning per integration per window. Incoming webhook volume is high enough that a
- * log operation per request would flood the customer's logs and our storage, and the
- * warning says the same thing every time.
+ * One warning per key per window. Incoming webhook volume is high enough that a log
+ * operation per request would flood the customer's logs and our storage, and the warning
+ * says the same thing every time.
  */
 const WARN_INTERVAL_MS = 60 * 60 * 1000;
-const lastWarnedAt = new Map<number, number>();
+const MAX_TRACKED_KEYS = 10_000;
+const lastWarnedAt = new Map<string, number>();
 
-function shouldWarn(integrationId: number): boolean {
+function shouldWarn(key: string): boolean {
     const now = Date.now();
-    const previous = lastWarnedAt.get(integrationId);
+    const previous = lastWarnedAt.get(key);
 
     if (previous && now - previous < WARN_INTERVAL_MS) {
         return false;
     }
 
-    lastWarnedAt.set(integrationId, now);
+    // Providers with a per-connection secret warn per connection, so the map is unbounded
+    // without this. Dropping the oldest entry only costs a duplicate warning.
+    if (lastWarnedAt.size >= MAX_TRACKED_KEYS && !previous) {
+        const oldest = lastWarnedAt.keys().next();
+        if (!oldest.done) {
+            lastWarnedAt.delete(oldest.value);
+        }
+    }
+
+    lastWarnedAt.set(key, now);
     return true;
 }
 
@@ -31,8 +41,14 @@ function shouldWarn(integrationId: number): boolean {
  * Our posture when a provider supports signature verification but no webhook secret is
  * configured is to let the webhook through, so the only signal the customer gets that
  * their traffic is unverified is this warning.
+ *
+ * `scope` narrows the throttle for providers whose secret lives on the connection rather
+ * than the integration, so one unconfigured connection does not mute the rest.
  */
-export function warnMissingWebhookSecret(nango: InternalNango, { reason, secretField }: { reason: string; secretField: string }): void {
+export function warnMissingWebhookSecret(
+    nango: InternalNango,
+    { reason, secretField, scope }: { reason: string; secretField: string; scope?: string | undefined }
+): void {
     const integrationId = nango.integration.id;
 
     metrics.increment(metrics.Types.WEBHOOK_INCOMING_UNVERIFIED, 1, {
@@ -40,7 +56,7 @@ export function warnMissingWebhookSecret(nango: InternalNango, { reason, secretF
         reason
     });
 
-    if (!integrationId || !shouldWarn(integrationId)) {
+    if (!integrationId || !shouldWarn(`${integrationId}:${reason}:${scope ?? ''}`)) {
         return;
     }
 

@@ -52,7 +52,11 @@ const route: WebhookHandler = async (nango, headers, body, rawBody, query) => {
             return Err(new NangoError(signature || legacyToken ? 'webhook_invalid_signature' : 'webhook_missing_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'gitlab_missing_webhook_secret', secretField: 'webhookSecret connection metadata field' });
+        warnMissingWebhookSecret(nango, {
+            reason: 'gitlab_missing_webhook_secret',
+            secretField: 'webhookSecret connection metadata field',
+            scope: connection.connectionId
+        });
     }
 
     const response = await nango.executeScriptForWebhooks({
