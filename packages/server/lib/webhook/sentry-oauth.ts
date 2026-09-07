@@ -6,6 +6,7 @@ import { connectionService, getProvider, NangoError } from '@nangohq/shared';
 import { Err, getLogger, Ok } from '@nangohq/utils';
 
 import oauthController from '../controllers/oauth.controller.js';
+import { warnMissingWebhookSecret } from './missing-secret.js';
 import { safeCompare } from './signature.js';
 
 import type { InternalNango } from './internal-nango.js';
@@ -30,8 +31,12 @@ export function validate(request: { body: any; headers: Record<string, string> }
 
 const route: WebhookHandler = async (nango, headers, body) => {
     const signature = headers['sentry-hook-signature'];
-    if (signature) {
-        const valid = validate({ body, headers }, nango.integration.oauth_client_secret ?? '');
+    const secret = nango.integration.oauth_client_secret;
+
+    if (!secret) {
+        warnMissingWebhookSecret(nango, { reason: 'sentry_missing_client_secret', remediation: 'Set the client secret on the integration' });
+    } else if (signature) {
+        const valid = validate({ body, headers }, secret);
         if (!valid) {
             logger.error('Sentry Oauth webhook signature invalid. Exiting');
             return Err(new NangoError('webhook_invalid_signature'));

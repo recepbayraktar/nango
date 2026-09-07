@@ -67,6 +67,13 @@ describe('validateHmacSignature', () => {
         expect(validateHmacSignature({ secret, rawBody, signature: '' })).toBe(false);
     });
 
+    it('rejects a signature computed with an empty key', () => {
+        // An empty key makes the digest computable by anyone who knows the body.
+        const signature = crypto.createHmac('sha256', Buffer.alloc(0)).update(rawBody).digest('hex');
+
+        expect(validateHmacSignature({ secret: '', rawBody, signature })).toBe(false);
+    });
+
     it('rejects a truncated signature without throwing', () => {
         const signature = crypto.createHmac('sha256', secret).update(rawBody).digest('hex').slice(0, 10);
 
@@ -75,7 +82,10 @@ describe('validateHmacSignature', () => {
 });
 
 describe('validateSvixSignature', () => {
-    const secret = 'whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw';
+    // Base64 of "not-a-real-secret-only-for-tests". Kept separate from the prefix so the source
+    // never contains a contiguous `whsec_`-prefixed key for secret scanners to flag.
+    const KEY = 'bm90LWEtcmVhbC1zZWNyZXQtb25seS1mb3ItdGVzdHM=';
+    const secret = `whsec_${KEY}`;
     const rawBody = '{"event":"created"}';
 
     function sign(id: string, timestamp: number, body: string): string {

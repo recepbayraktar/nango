@@ -19,7 +19,8 @@ export function safeCompare(expected: string, received: string, encoding: Buffer
 }
 
 export interface HmacOptions {
-    secret: string | Buffer;
+    /** String only. A zero-length Buffer is truthy, so accepting Buffers here would let an empty key through. */
+    secret: string;
     rawBody: string;
     signature: string;
     algorithm?: 'sha1' | 'sha256';
@@ -34,7 +35,7 @@ export interface HmacOptions {
  * most providers, differing only in algorithm, digest encoding and prefix.
  */
 export function validateHmacSignature({ secret, rawBody, signature, algorithm = 'sha256', digest = 'hex', prefix }: HmacOptions): boolean {
-    if (!secret || (typeof secret === 'string' && secret.length === 0) || !signature) {
+    if (!secret || !signature) {
         return false;
     }
 

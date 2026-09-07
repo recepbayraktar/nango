@@ -6,9 +6,14 @@ import type { InternalNango } from './internal-nango.js';
 const logger = getLogger('Webhook.MissingSecret');
 
 /**
- * One warning per key per window. Incoming webhook volume is high enough that a log
- * operation per request would flood the customer's logs and our storage, and the warning
- * says the same thing every time.
+ * One warning per key per window, per replica. The map is in process, so N replicas can
+ * emit up to N warnings an hour for the same key. That is deliberate: a shared throttle
+ * would put a kvstore round trip on the ingress path, which is the latency providers time
+ * out on, to save a log line.
+ *
+ * Throttled at all because incoming webhook volume is high enough that a log operation per
+ * request would flood the customer's logs and our storage, and the warning says the same
+ * thing every time.
  */
 const WARN_INTERVAL_MS = 60 * 60 * 1000;
 const MAX_TRACKED_KEYS = 10_000;

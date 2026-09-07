@@ -30,14 +30,21 @@ function resolveSecret(webhookSecret: Metadata[string]): Result<string> {
         if (webhookSecret.length > 1) {
             return Err(new NangoError('webhook_invalid_secret', { reason: 'Multiple webhook secrets configured. Only one secret is allowed.' }));
         }
-        return Ok(webhookSecret[0] as string);
+        return asSecret(webhookSecret[0]);
     }
 
-    if (typeof webhookSecret === 'string') {
-        return Ok(webhookSecret);
+    return asSecret(webhookSecret);
+}
+
+// Metadata values are unknown, so the element has to be checked rather than cast. A number
+// makes createHmac throw, and an empty string keys the HMAC with nothing, which makes the
+// expected signature computable by anyone who knows the body.
+function asSecret(value: unknown): Result<string> {
+    if (typeof value !== 'string' || value.length === 0) {
+        return Err(new NangoError('webhook_invalid_secret', { reason: 'Invalid webhook secret' }));
     }
 
-    return Err(new NangoError('webhook_invalid_secret', { reason: 'Invalid webhook secret' }));
+    return Ok(value);
 }
 
 const route: WebhookHandler<PagerDutyWebhookPayload> = async (nango, headers, body, rawBody) => {
