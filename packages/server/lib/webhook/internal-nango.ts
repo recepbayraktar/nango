@@ -101,7 +101,7 @@ export class InternalNango {
         return await getSyncConfigsByConfigIdForWebhook(this.environment.id, this.integration.id!);
     }
 
-    async getConnectionForWebhook(connectionId: string): Promise<{ connectionId: string; metadata: Metadata | null } | null> {
+    async getConnectionForWebhook(connectionId: string): Promise<{ id: number; connectionId: string; metadata: Metadata | null } | null> {
         const { success, response: connection } = await connectionService.getConnection(connectionId, this.integration.unique_key, this.environment.id);
 
         if (!success || !connection) {
@@ -109,6 +109,7 @@ export class InternalNango {
         }
 
         return {
+            id: connection.id,
             connectionId: connection.connection_id,
             metadata: 'metadata' in connection ? connection.metadata : null
         };

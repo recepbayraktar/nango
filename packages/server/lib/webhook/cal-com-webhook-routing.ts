@@ -20,7 +20,7 @@ const route: WebhookHandler = async (nango, headers, body, rawBody, query) => {
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'cal_com_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'cal_com_missing_webhook_secret' });
     }
 
     const connectionIdentifierValue = query?.['nangoConnectionId'] ?? body.nangoConnectionId;

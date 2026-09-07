@@ -23,7 +23,7 @@ const route: WebhookHandler<AttioWebhook> = async (nango, headers, body, rawBody
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'attio_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'attio_missing_webhook_secret' });
     }
 
     const parsedBody = body;

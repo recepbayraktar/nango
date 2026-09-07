@@ -20,7 +20,7 @@ const route: WebhookHandler<FathomWebhookResponse> = async (nango, headers, body
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'fathom_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'fathom_missing_webhook_secret' });
     }
 
     const emailAddress = body.recorded_by?.email;

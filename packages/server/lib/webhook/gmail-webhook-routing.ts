@@ -95,7 +95,7 @@ const route: WebhookHandler = async (nango, headers, body) => {
     if (!authHeader) {
         warnMissingWebhookSecret(nango, {
             reason: 'gmail_missing_authorization',
-            secretField: 'OIDC token on the Pub/Sub push subscription'
+            remediation: 'Recreate the Pub/Sub push subscription with an OIDC token'
         });
     }
 

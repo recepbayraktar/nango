@@ -35,6 +35,9 @@ function shouldWarn(key: string): boolean {
     return true;
 }
 
+/** Completes "<remediation> to enable verification." */
+const DEFAULT_REMEDIATION = 'Set the webhook secret on the integration';
+
 /**
  * Surface a skipped signature check in the customer's own logs.
  *
@@ -42,12 +45,20 @@ function shouldWarn(key: string): boolean {
  * configured is to let the webhook through, so the only signal the customer gets that
  * their traffic is unverified is this warning.
  *
- * `scope` narrows the throttle for providers whose secret lives on the connection rather
- * than the integration, so one unconfigured connection does not mute the rest.
+ * `remediation` says where to set the secret, because that differs per provider. Pass a
+ * phrase that completes "<remediation> to enable verification".
+ *
+ * `connection` scopes both the warning and its throttle for providers whose secret lives
+ * on the connection, so one unconfigured connection neither mislabels the others nor
+ * mutes them.
  */
 export function warnMissingWebhookSecret(
     nango: InternalNango,
-    { reason, secretField, scope }: { reason: string; secretField: string; scope?: string | undefined }
+    {
+        reason,
+        remediation = DEFAULT_REMEDIATION,
+        connection
+    }: { reason: string; remediation?: string | undefined; connection?: { id: number; name: string } | undefined }
 ): void {
     const integrationId = nango.integration.id;
 
@@ -56,9 +67,11 @@ export function warnMissingWebhookSecret(
         reason
     });
 
-    if (!integrationId || !shouldWarn(`${integrationId}:${reason}:${scope ?? ''}`)) {
+    if (!integrationId || !shouldWarn(`${integrationId}:${reason}:${connection?.id ?? ''}`)) {
         return;
     }
+
+    const scope = connection ? 'this connection' : 'this integration';
 
     void (async () => {
         try {
@@ -67,13 +80,14 @@ export function warnMissingWebhookSecret(
                 {
                     account: nango.team,
                     environment: nango.environment,
-                    integration: { id: integrationId, name: nango.integration.unique_key, provider: nango.integration.provider }
+                    integration: { id: integrationId, name: nango.integration.unique_key, provider: nango.integration.provider },
+                    ...(connection ? { connection } : {})
                 }
             );
             logCtx.attachSpan(new OtlpSpan(logCtx.operation));
 
             await logCtx.warn(
-                `Incoming webhooks for this integration are not being verified because no ${secretField} is configured. Anyone who knows your webhook URL can send events that Nango will process and forward as if they came from ${nango.integration.provider}. Set the webhook secret on the integration to enable signature verification.`,
+                `Incoming webhooks for ${scope} are not being verified. Anyone who knows your webhook URL can send events that Nango will process and forward as if they came from ${nango.integration.provider}. ${remediation} to enable verification.`,
                 { provider: nango.integration.provider, integration: nango.integration.unique_key, reason }
             );
             await logCtx.success();

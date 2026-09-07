@@ -29,7 +29,10 @@ export function validateGoogleChannelToken(nango: InternalNango, headers: Record
     const expected = integration.custom?.['webhookSecret'];
 
     if (expected == null || expected === '') {
-        warnMissingWebhookSecret(nango, { reason: 'google_missing_channel_token_secret', secretField: 'channel token webhook secret' });
+        warnMissingWebhookSecret(nango, {
+            reason: 'google_missing_channel_token_secret',
+            remediation: 'Set the channel token webhook secret on the integration'
+        });
         return Ok(undefined);
     }
 

@@ -80,8 +80,8 @@ const route: WebhookHandler<PagerDutyWebhookPayload> = async (nango, headers, bo
     } else {
         warnMissingWebhookSecret(nango, {
             reason: 'pagerduty_missing_webhook_secret',
-            secretField: 'webhookSecret connection metadata field',
-            scope: connection.connectionId
+            remediation: 'Set webhookSecret in the connection metadata',
+            connection: { id: connection.id, name: connection.connectionId }
         });
     }
 

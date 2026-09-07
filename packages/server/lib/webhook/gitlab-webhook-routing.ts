@@ -54,8 +54,8 @@ const route: WebhookHandler = async (nango, headers, body, rawBody, query) => {
     } else {
         warnMissingWebhookSecret(nango, {
             reason: 'gitlab_missing_webhook_secret',
-            secretField: 'webhookSecret connection metadata field',
-            scope: connection.connectionId
+            remediation: 'Set webhookSecret in the connection metadata',
+            connection: { id: connection.id, name: connection.connectionId }
         });
     }
 

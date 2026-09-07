@@ -39,7 +39,10 @@ const route: WebhookHandler<MicrosoftNotificationPayload> = async (nango, _heade
     const expectedClientState = nango.integration.custom?.['webhookSecret'];
 
     if (!expectedClientState) {
-        warnMissingWebhookSecret(nango, { reason: 'microsoft_missing_client_state', secretField: 'clientState webhook secret' });
+        warnMissingWebhookSecret(nango, {
+            reason: 'microsoft_missing_client_state',
+            remediation: 'Set the clientState webhook secret on the integration'
+        });
     }
 
     const validNotifications = expectedClientState

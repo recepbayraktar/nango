@@ -69,7 +69,7 @@ const route: WebhookHandler = async (nango, headers, body, rawBody) => {
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'calendly_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'calendly_missing_webhook_secret' });
     }
 
     const response = await nango.executeScriptForWebhooks({

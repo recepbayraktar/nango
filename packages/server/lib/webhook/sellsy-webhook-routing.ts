@@ -34,7 +34,7 @@ const route: WebhookHandler<SellsyWebhookPayload> = async (nango, headers, body,
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'sellsy_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'sellsy_missing_webhook_secret' });
     }
 
     let webhookTypeValue: string;

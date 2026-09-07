@@ -22,7 +22,7 @@ const route: WebhookHandler<jobdivaWebhookResponse> = async (nango, headers, bod
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'jobdiva_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'jobdiva_missing_webhook_secret' });
     }
 
     const response = await nango.executeScriptForWebhooks({

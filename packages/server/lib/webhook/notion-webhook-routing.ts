@@ -25,7 +25,7 @@ const route: WebhookHandler<NotionWebhook | NotionWebhookVerification> = async (
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'notion_missing_verification_token', secretField: 'verification token' });
+        warnMissingWebhookSecret(nango, { reason: 'notion_missing_verification_token', remediation: 'Set the verification token on the integration' });
     }
 
     const response = await nango.executeScriptForWebhooks({

@@ -23,6 +23,7 @@ function getNangoMock(webhookSecret: unknown = SIGNING_TOKEN) {
         logContextGetter
     });
     const getConnection = vi.spyOn(nango, 'getConnectionForWebhook').mockResolvedValue({
+        id: 1,
         connectionId: CONNECTION_ID,
         metadata: webhookSecret === null ? null : { webhookSecret }
     });

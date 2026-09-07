@@ -16,7 +16,7 @@ const route: WebhookHandler = async (nango, headers, body) => {
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'videoask_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'videoask_missing_webhook_secret' });
     }
 
     const connectionIdentifierValue = headers['nango-connection-id'];

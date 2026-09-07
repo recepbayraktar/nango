@@ -63,7 +63,7 @@ const route: WebhookHandler = async (nango, headers, body, rawBody) => {
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'jira_missing_webhook_secret', secretField: 'webhook secret' });
+        warnMissingWebhookSecret(nango, { reason: 'jira_missing_webhook_secret' });
     }
 
     const connectionIds = await routeEvent(nango, body);

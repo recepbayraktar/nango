@@ -35,7 +35,7 @@ const route: WebhookHandler<HighLevelWebhookResponse> = async (nango, headers, b
             return Err(new NangoError('webhook_invalid_signature'));
         }
     } else {
-        warnMissingWebhookSecret(nango, { reason: 'highlevel_missing_webhook_secret', secretField: 'webhook public key' });
+        warnMissingWebhookSecret(nango, { reason: 'highlevel_missing_webhook_secret', remediation: 'Set the webhook public key on the integration' });
     }
 
     const { companyId, locationId, altId, altType, type } = body;
