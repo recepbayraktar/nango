@@ -51,13 +51,6 @@ export function buildFlags(client: FeatureFlagsClient) {
             );
         },
         /**
-         * Whether proxy responses forward all provider headers (minus hop-by-hop / CORS)
-         * instead of the buffered-path allowlist. Default `false`.
-         */
-        shouldForwardAllProxyResponseHeaders(accountUuid: string) {
-            return client.isEnabled('proxy-forward-all-response-headers', { targetingKey: accountUuid, accountUuid }, false);
-        },
-        /**
          * Whether the audit trail is enabled for this account, on top of its plan entitlement:
          * percentage rollout plus a kill switch. Default `false`, so the rollout only ever advances
          * by an explicit change to the flag.
